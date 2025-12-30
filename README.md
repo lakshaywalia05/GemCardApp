@@ -7,7 +7,7 @@
 This project demonstrates a **Hybrid Architecture**, leveraging the system-level security of **Python** with the modern, responsive UI capabilities of **HTML5 & TailwindCSS**. The application is compiled into a single, standalone executable that runs 100% offline.
 
 ### 📥 Download Demo
-[![Download Demo](https://img.shields.io/badge/Download-Demo_App_(.exe)-blue?style=for-the-badge&logo=windows)](https://github.com/lakshaywalia05/GemCardApp-Demo/archive/refs/tags/v1.0.zip)
+[![Download Demo](https://img.shields.io/badge/Download-Demo_App_(.exe)-blue?style=for-the-badge&logo=windows)](https://github.com/lakshaywalia05/GemCardApp/archive/refs/tags/v1.0.zip)
 
 *(Click the button above to download the secure Windows .exe)*
 

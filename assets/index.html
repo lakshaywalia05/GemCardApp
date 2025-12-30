@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemstones Card Editor Pro</title>
+    
+    <script src="tailwindcss.js"></script>
+    <link rel="stylesheet" href="fontawesome.css">
+    <link rel="stylesheet" href="cropper.min.css">
+    <script src="cropper.min.js"></script>
+    <script src="qrious.min.js"></script>
+
+    <style>
+        /* --- Core Layout & App Feel --- */
+        :root {
+            --header-height: 80px;
+            --sidebar-width: 420px;
+            --bg-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --text-primary: #1e293b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden; /* Prevent body scroll for app-like feel */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none; /* UI is not selectable like text */
+        }
+
+        /* Allow text selection only in inputs */
+        input, textarea { user-select: text; }
+
+        /* --- Header --- */
+        header {
+            height: var(--header-height);
+            background: linear-gradient(to right, #1e293b, #0f172a);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-brand h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-status {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.05);
+            padding: 0.4rem 0.8rem;
+            border-radius: 99px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            display: flex;
+            flex: 1; 
+            width: 100%;
+            overflow: hidden; 
+        }
+
+        /* --- Left: Canvas Container --- */
+        .canvas-container {
+            flex: 1;
+            background-color: #e2e8f0;
+            /* Modern Grid Pattern */
+            background-image: 
+                linear-gradient(#cbd5e1 1px, transparent 1px),
+                linear-gradient(90deg, #cbd5e1 1px, transparent 1px);
+            background-size: 40px 40px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center; 
+            padding: 2rem;
+            position: relative;
+        }
+
+        .canvasWrap {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background: white;
+            line-height: 0;
+            border-radius: 4px; /* Slight roundness */
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        
+        /* Subtle zoom on hover for detail check */
+        /* .canvasWrap:hover { transform: scale(1.02); } */
+
+        canvas {
+            width: 1011px;
+            height: 638px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* --- Right: Controls --- */
+        .controls-sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-left: 1px solid #e2e8f0;
+            overflow-y: auto;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.02);
+        }
+
+        .sidebar-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: #334155;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .sidebar-header i { color: var(--accent-color); }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .control-group.full-width { grid-column: span 2; }
+
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Modern Inputs */
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #1e293b;
+            background-color: #fff;
+            transition: all 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        input[type="checkbox"] {
+            width: 1.1rem;
+            height: 1.1rem;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+        }
+
+        /* Custom File Input Styling */
+        input[type="file"] {
+            padding: 0.4rem;
+            background: #f8fafc;
+            font-size: 0.8rem;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 10px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: none;
+            background: #e2e8f0;
+            color: #475569;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover { background: #cbd5e1; }
+
+        /* --- Action Bar (Bottom) --- */
+        .action-bar {
+            margin-top: auto;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.85rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn:active { transform: translateY(1px); }
+
+        .btn-primary { 
+            background: #2563eb; color: white; 
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        .btn-primary:hover { background: #1d4ed8; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+
+        .btn-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+        .btn-secondary:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+        .btn-danger { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+        .btn-danger:hover { background: #ffe4e6; border-color: #fda4af; }
+
+        .btn-full { grid-column: span 2; }
+
+        /* --- Modal --- */
+        .cropper-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.85); /* Darker, slicker bg */
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .cropper-container-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* --- Scrollbars --- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-brand">
+            <i class="fas fa-gem text-blue-400 text-2xl"></i>
+            <div>
+                <h1>GemEditor Pro</h1>
+                <div class="text-xs text-slate-400 font-mono">Build v2.1.0 • Offline Mode</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <i class="fas fa-check-circle text-green-400 mr-1"></i> System Ready
+        </div>
+    </header>
+
+    <main>
+        <div class="canvas-container">
+            <div class="canvasWrap">
+                <canvas id="reportCanvas" width="1011" height="638">
+                    Your browser does not support the canvas element.
+                </canvas>
+            </div>
+        </div>
+
+        <div class="controls-sidebar">
+            
+            <div class="sidebar-section bg-slate-50">
+                <div class="sidebar-header">
+                    <i class="fas fa-images"></i> Visual Assets
+                </div>
+                
+                <div class="control-group">
+                    <label>Gemstone Photo <span class="text-xs font-normal text-blue-600">(Auto-Crop Enabled)</span></label>
+                    <input type="file" id="gemInput" accept="image/*">
+                </div>
+                
+                <div class="control-grid" style="margin-top: 0.8rem;">
+                    <div class="control-group">
+                        <label>Logo</label>
+                        <input type="file" id="logoInput" accept="image/*">
+                    </div>
+                    <div class="control-group">
+                        <label>Background</label>
+                        <input type="file" id="bgInput" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-header">
+                    <i class="fas fa-file-alt"></i> Report Details
+                </div>
+
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Report No <input type="checkbox" id="chk_reportNo" checked></label>
+                        <input type="text" id="reportNo" value="LW-882942">
+                    </div>
+                    <div class="control-group">
+                        <label>Weight <input type="checkbox" id="chk_weight" checked></label>
+                        <input type="text" id="weight" value="4.50 ct">
+                    </div>
+                </div>
+
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Species <input type="checkbox" id="chk_species" checked></label>
+                        <input type="text" id="species" list="speciesList" value="Natural Corundum">
+                        <datalist id="speciesList">
+                            <option value="Natural Corundum">
+                            <option value="Natural Beryl">
+                            <option value="Natural Zoisite">
+                            <option value="Natural Spinel">
+                            <option value="Natural Quartz">
+                            <option value="Natural Tourmaline">
+                            <option value="Natural Garnet">
+                            <option value="Natural Opal">
+                            <option value="Natural Zircon">
+                            <option value="Natural Peridot">
+                            <option value="Natural Chrysoberyl">
+                            <option value="Natural Topaz">
+                            <option value="Synthetic Corundum">
+                            <option value="Glass Filled Corundum">
+                        </datalist>
+                    </div>
+                    <div class="control-group">
+                        <label>Variety <input type="checkbox" id="chk_variety" checked></label>
+                        <input type="text" id="variety" list="varietyList" value="Blue Sapphire">
+                        <datalist id="varietyList">
+                            <option value="Blue Sapphire">
+                            <option value="Yellow Sapphire">
+                            <option value="Pink Sapphire">
+                            <option value="White Sapphire">
+                            <option value="Ruby">
+                            <option value="Emerald">
+                            <option value="Aquamarine">
+                            <option value="Tanzanite">
+                            <option value="Amethyst">
+                            <option value="Citrine">
+                            <option value="Red Spinel">
+                            <option value="Tsavorite Garnet">
+                            <option value="Hessonite Garnet">
+                            <option value="Cat's Eye">
+                            <option value="Alexandrite">
+                            <option value="Moonstone">
+                            <option value="Lab Grown Diamond">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Shape & Cut <input type="checkbox" id="chk_cut" checked></label>
+                        <input type="text" id="cut" list="cutList" value="Oval Mixed Cut">
+                        <datalist id="cutList">
+                            <option value="Oval Mixed Cut">
+                            <option value="Round Brilliant">
+                            <option value="Emerald Cut">
+                            <option value="Cushion Mixed Cut">
+                            <option value="Pear Mixed Cut">
+                            <option value="Marquise Mixed Cut">
+                            <option value="Cabochon">
+                            <option value="Octagonal Step Cut">
+                            <option value="Heart Mixed Cut">
+                            <option value="Princess Cut">
+                            <option value="Radiant Cut">
+                            <option value="Asscher Cut">
+                            <option value="Trillion Cut">
+                            <option value="Baguette Cut">
+                            <option value="Rough / Uncut">
+                        </datalist>
+                    </div>
+                    <div class="control-group">
+                        <label>Dimensions <input type="checkbox" id="chk_dimensions" checked></label>
+                        <input type="text" id="dimensions" value="9.45 x 7.20 x 5.10 mm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-header">
+                    <i class="fas fa-microscope"></i> Gemmological Data
+                </div>
+
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Color <input type="checkbox" id="chk_color" checked></label>
+                        <input type="text" id="color" list="colorList" value="Vivid Blue">
+                        <datalist id="colorList">
+                            <option value="Vivid Blue">
+                            <option value="Royal Blue">
+                            <option value="Cornflower Blue">
+                            <option value="Pigeon Blood Red">
+                            <option value="Vivid Green">
+                            <option value="Deep Yellow">
+                            <option value="Pink">
+                            <option value="Purple">
+                            <option value="Orange">
+                            <option value="Colorless">
+                            <option value="Black">
+                            <option value="Multicolor">
+                            <option value="Changing Color">
+                        </datalist>
+                    </div>
+                    <div class="control-group">
+                        <label>Transparency <input type="checkbox" id="chk_clarity" checked></label>
+                        <input type="text" id="clarity" list="transList" value="Transparent">
+                        <datalist id="transList">
+                            <option value="Transparent">
+                            <option value="Translucent">
+                            <option value="Opaque">
+                            <option value="Semi-Transparent">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Refractive Index <input type="checkbox" id="chk_ri" checked></label>
+                        <input type="text" id="ri" value="1.762 - 1.770">
+                    </div>
+                    <div class="control-group">
+                        <label>Specific Gravity <input type="checkbox" id="chk_sg" checked></label>
+                        <input type="text" id="sg" value="4.00">
+                    </div>
+                </div>
+
+                <div class="control-group full-width" style="margin-top: 0.5rem;">
+                    <label>Comments / Microscopic <input type="checkbox" id="chk_microscopic" checked></label>
+                    <textarea id="microscopic" rows="3">Natural inclusions visible.
+Indications of thermal enhancement (Heating).</textarea>
+                </div>
+                
+                 <div class="control-group full-width">
+                    <label>Footer Declaration</label>
+                    <input type="text" id="declaration" value="LW& Study Center">
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="app.download('jpg')">
+                    <i class="fas fa-download"></i> Save JPG
+                </button>
+                <button class="btn btn-secondary" onclick="app.download('png')">
+                    <i class="fas fa-file-image"></i> Save PNG
+                </button>
+                <button class="btn btn-secondary btn-full" onclick="app.copyTextReport()">
+                    <i class="fas fa-copy"></i> Copy Report Text
+                </button>
+                <button class="btn btn-danger btn-full" onclick="app.resetData()">
+                    <i class="fas fa-trash-alt"></i> Reset All Data
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="cropperModal" class="cropper-modal-overlay">
+        <div class="cropper-container-box">
+            <div class="flex justify-between items-center border-b pb-3 mb-2">
+                <h3 class="font-bold text-xl text-slate-800">Crop Image</h3>
+                <button onclick="cropApp.cancel()" class="text-slate-400 hover:text-red-500 transition-colors text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="img-preview-container bg-slate-900 rounded-lg">
+                <img id="imageToCrop" src="" alt="Image to crop">
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t mt-2">
+                <button onclick="cropApp.cancel()" class="px-5 py-2.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold transition-colors">
+                    Cancel
+                </button>
+                <button onclick="cropApp.confirm()" class="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5">
+                    <i class="fas fa-crop-simple mr-2"></i> Crop & Apply
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** Cropper Logic */
+        const cropApp = (() => {
+            const modal = document.getElementById('cropperModal');
+            const imageElement = document.getElementById('imageToCrop');
+            let cropper = null;
+
+            const open = (imageSrc) => {
+                imageElement.src = imageSrc;
+                modal.style.display = 'flex';
+                if(cropper) cropper.destroy();
+                cropper = new Cropper(imageElement, {
+                    aspectRatio: 1, 
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    background: false,
+                });
+            };
+
+            const cancel = () => {
+                modal.style.display = 'none';
+                if(cropper) cropper.destroy();
+                document.getElementById('gemInput').value = "";
+            };
+
+            const confirm = () => {
+                if(!cropper) return;
+                const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
+                app.setGemImage(canvas.toDataURL());
+                modal.style.display = 'none';
+                cropper.destroy();
+            };
+
+            return { open, cancel, confirm };
+        })();
+
+        /** Main Application Logic */
+        const app = (() => {
+            const canvas = document.getElementById('reportCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const assets = {
+                background: new Image(), gem: new Image(), logo: new Image(),
+                bgLoaded: false, gemLoaded: false, logoLoaded: false
+            };
+
+            // Gather inputs dynamically
+            const inputs = {
+                reportNo: document.getElementById('reportNo'),
+                weight: document.getElementById('weight'),
+                species: document.getElementById('species'),
+                variety: document.getElementById('variety'),
+                cut: document.getElementById('cut'),
+                dimensions: document.getElementById('dimensions'),
+                color: document.getElementById('color'),
+                clarity: document.getElementById('clarity'),
+                ri: document.getElementById('ri'),
+                sg: document.getElementById('sg'),
+                microscopic: document.getElementById('microscopic'),
+                declaration: document.getElementById('declaration')
+            };
+
+            const toggles = {
+                reportNo: document.getElementById('chk_reportNo'),
+                weight: document.getElementById('chk_weight'),
+                species: document.getElementById('chk_species'),
+                variety: document.getElementById('chk_variety'),
+                cut: document.getElementById('chk_cut'),
+                dimensions: document.getElementById('chk_dimensions'),
+                color: document.getElementById('chk_color'),
+                clarity: document.getElementById('chk_clarity'),
+                ri: document.getElementById('chk_ri'),
+                sg: document.getElementById('chk_sg'),
+                microscopic: document.getElementById('chk_microscopic'),
+            };
+
+            const init = () => {
+                // Listeners
+                Object.values(inputs).forEach(el => el.addEventListener('input', draw));
+                Object.values(toggles).forEach(el => el.addEventListener('change', draw));
+                
+                document.getElementById('bgInput').addEventListener('change', (e) => handleFile(e, 'background'));
+                document.getElementById('logoInput').addEventListener('change', (e) => handleFile(e, 'logo'));
+                
+                document.getElementById('gemInput').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if(file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => cropApp.open(ev.target.result);
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // Default logo load
+                assets.logo.src = 'logo.jpg';
+                assets.logo.onload = () => { assets.logoLoaded = true; draw(); };
+                assets.logo.onerror = () => { assets.logoLoaded = false; draw(); }; 
+
+                draw();
+            };
+
+            const setGemImage = (dataUrl) => {
+                assets.gem.src = dataUrl;
+                assets.gem.onload = () => {
+                    assets.gemLoaded = true;
+                    draw();
+                }
+            };
+
+            const handleFile = (e, type) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    assets[type].src = ev.target.result;
+                    assets[type].onload = () => {
+                        assets[`${type}Loaded`] = true;
+                        draw();
+                    };
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 1. Background
+                if (assets.bgLoaded) {
+                    ctx.drawImage(assets.background, 0, 0, canvas.width, canvas.height);
+                } else {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    // Subtle inner border for card definition
+                    ctx.strokeStyle = "#e2e8f0";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(5, 5, canvas.width-10, canvas.height-10);
+                }
+
+                // 2. Header
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#000000";
+                
+                const centerX = canvas.width / 2;
+                
+                // Main Title
+                ctx.font = "bold 55px 'Times New Roman', serif";
+                ctx.fillText("LW LAB", centerX, 60);
+
+                // Subtitle
+                ctx.font = "bold 16px 'Arial', sans-serif";
+                ctx.letterSpacing = "3px"; 
+                ctx.fillText("THE LW LAB", centerX, 85);
+
+                // Contact Line
+                ctx.font = "12px 'Arial', sans-serif";
+                ctx.fillStyle = "#475569";
+                ctx.fillText("+91 123456789  |  EXAMPLE@GMAIL.COM", centerX, 105);
+                
+                // Separator Line
+                ctx.beginPath();
+                ctx.moveTo(centerX - 120, 115);
+                ctx.lineTo(centerX + 120, 115);
+                ctx.strokeStyle = "#94a3b8";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // ISO / Certification Tags
+                ctx.font = "bold 13px 'Arial', sans-serif";
+                ctx.fillStyle = "#334155";
+                ctx.textAlign = "right"; 
+                ctx.fillText("CERTIFIED LAB", canvas.width - 30, 30);
+                ctx.font = "11px 'Arial', sans-serif";
+                ctx.fillStyle = "#64748b";
+                ctx.fillText("ISO 9001:2015 COMPANY", canvas.width - 30, 48);
+
+                ctx.restore();
+
+                // 3. Logo
+                if (assets.logoLoaded) {
+                    const dim = 100; // Slightly larger logo
+                    const r = Math.min(dim/assets.logo.width, dim/assets.logo.height);
+                    ctx.drawImage(assets.logo, 30, 20, assets.logo.width*r, assets.logo.height*r);
+                }
+
+                // 4. Gem Image
+                if (assets.gemLoaded) {
+                    const bx = 760; 
+                    const by = 120; 
+                    const bw = 220;
+                    const bh = 220;
+                    
+                    // Box Border
+                    ctx.strokeStyle = "#cbd5e1";
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(bx, by, bw, bh);
+
+                    // Image Fit
+                    const r = Math.min(bw/assets.gem.width, bh/assets.gem.height);
+                    const dw = assets.gem.width * r;
+                    const dh = assets.gem.height * r;
+                    ctx.drawImage(assets.gem, bx+(bw-dw)/2, by+(bh-dh)/2, dw, dh);
+                }
+
+                // 5. Data Rows
+                ctx.fillStyle = "#0f172a";
+                ctx.textAlign = "left";
+                
+                const labelX = 40;
+                const valueX = 240; 
+                
+                let y = 160; 
+                const lh = 34; // Increased Line Height for readability
+
+                const printRow = (label, value) => {
+                    ctx.font = "bold 19px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                    ctx.fillStyle = "#334155"; // Lighter label color
+                    ctx.fillText(label, labelX, y);
+                    
+                    ctx.fillStyle = "#000000"; // Darker value color
+                    ctx.font = "19px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                    ctx.fillText(":  " + value, valueX, y);
+                    y += lh;
+                };
+
+                // Conditional Logic
+                if(toggles.reportNo.checked) printRow("Report No", inputs.reportNo.value);
+                
+                printRow("Date", new Date().toLocaleDateString('en-GB'));
+                
+                if(y > 180) y += 5; 
+
+                if(toggles.species.checked) printRow("Species", inputs.species.value);
+                if(toggles.variety.checked) printRow("Variety", inputs.variety.value);
+                if(toggles.cut.checked) printRow("Shape & Cut", inputs.cut.value);
+                if(toggles.weight.checked) printRow("Weight", inputs.weight.value);
+                if(toggles.dimensions.checked) printRow("Dimensions", inputs.dimensions.value);
+                if(toggles.color.checked) printRow("Color", inputs.color.value);
+                if(toggles.clarity.checked) printRow("Transparency", inputs.clarity.value);
+                
+                y += 5;
+                if(toggles.ri.checked) printRow("Refractive Index", inputs.ri.value);
+                if(toggles.sg.checked) printRow("Specific Gravity", inputs.sg.value);
+
+                // 6. Comments 
+                if(toggles.microscopic.checked) {
+                    y += 25;
+                    ctx.fillStyle = "#334155";
+                    ctx.font = "bold 19px 'Helvetica Neue', Helvetica, Arial";
+                    ctx.fillText("Microscopic Analysis / Comments:", labelX, y);
+                    y += 28;
+                    ctx.fillStyle = "#000000";
+                    ctx.font = "italic 18px 'Georgia', serif"; // Serif for comments looks more official
+                    
+                    const comments = inputs.microscopic.value.split('\n');
+                    comments.forEach(line => {
+                        ctx.fillText(line, labelX, y);
+                        y += 24;
+                    });
+                }
+
+                // 7. QR CODE
+                let qrTextPayload = `REPORT VERIFICATION\n`;
+                if(toggles.reportNo.checked) qrTextPayload += `ID: ${inputs.reportNo.value}\n`;
+                qrTextPayload += `Date: ${new Date().toLocaleDateString()}\n`;
+                if(toggles.species.checked) qrTextPayload += `Sp: ${inputs.species.value}\n`;
+                if(toggles.variety.checked) qrTextPayload += `Vr: ${inputs.variety.value}\n`;
+                if(toggles.weight.checked) qrTextPayload += `Wt: ${inputs.weight.value}\n`;
+                
+                const qrSize = 130;
+                const qr = new QRious({
+                    value: qrTextPayload,
+                    size: qrSize, 
+                    level: 'H' // High error correction
+                });
+
+                const qrX = 805;
+                const qrY = 440; 
+
+                // AUTHENTIC TEXT
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.font = "bold 12px Arial";
+                ctx.fillStyle = "#166534"; // Darker green
+                ctx.letterSpacing = "1px";
+                ctx.fillText("VERIFIED AUTHENTIC", qrX + (qrSize/2), qrY - 12);
+                ctx.restore();
+
+                // Draw QR Code
+                ctx.drawImage(qr.canvas, qrX, qrY);
+                
+                // QR Scan Label
+                ctx.font = "10px Arial";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#64748b";
+                ctx.fillText("SCAN TO VERIFY DATA", qrX + (qrSize/2), qrY + qrSize + 15);
+
+                // 8. Footer
+                ctx.font = "bold 14px 'Helvetica Neue', Arial";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#475569";
+                ctx.fillText(inputs.declaration.value, canvas.width/2, canvas.height - 20);
+            };
+
+            const download = (ext) => {
+                const link = document.createElement('a');
+                const id = inputs.reportNo.value.replace(/[^a-z0-9]/gi, '_');
+                link.download = `GemReport_${id}.${ext}`;
+                link.href = canvas.toDataURL(`image/${ext}`, 0.95);
+                link.click();
+            };
+
+            const copyTextReport = () => {
+                let text = "---  GEM LAB REPORT ---\n";
+                if(toggles.reportNo.checked) text += `Report No: ${inputs.reportNo.value}\n`;
+                text += `Date: ${new Date().toLocaleDateString()}\n\n`;
+                
+                if(toggles.species.checked) text += `Species: ${inputs.species.value}\n`;
+                if(toggles.variety.checked) text += `Variety: ${inputs.variety.value}\n`;
+                if(toggles.weight.checked) text += `Weight: ${inputs.weight.value}\n`;
+                
+                if(toggles.microscopic.checked) text += `\nComments:\n${inputs.microscopic.value}\n`;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    // Visual feedback could be added here
+                    alert("Report details copied to clipboard.");
+                });
+            };
+
+            const resetData = () => {
+                if(confirm("Are you sure you want to clear all fields?")) {
+                    Object.values(inputs).forEach(i => i.value = "");
+                    inputs.reportNo.value = "LW-New";
+                    inputs.declaration.value = "LWCenter";
+                    inputs.weight.value = "0.00 ct";
+                    
+                    Object.values(toggles).forEach(t => t.checked = true);
+                    
+                    // Clear images
+                    assets.gem = new Image();
+                    assets.gemLoaded = false;
+                    document.getElementById('gemInput').value = "";
+                    
+                    draw();
+                }
+            };
+
+            init();
+
+            return { download, resetData, setGemImage, copyTextReport };
+        })();
+    </script>
+</body>
+</html>
